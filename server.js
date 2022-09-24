@@ -16,10 +16,12 @@ var connection = mysql.createConnection({
 // connect to the mysql server and sql database
 connection.connect((err) => {
   if (err) throw err;
+  // run the start function after the connection is made to prompt the user
   start();
 });
 
 // start function for application
+
 function start() {
     inquirer
       .prompt({
@@ -39,6 +41,7 @@ function start() {
         ]
       })
       .then(function(answer) {
+        // based on their answer, either call the bid or the post functions
         if (answer.action === "View all Departments") {
           viewDepts();
         }

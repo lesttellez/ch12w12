@@ -29,5 +29,6 @@ CREATE TABLE employee(
 );
 
 SELECT * FROM employee;
-SELECT * FROM department;
-SELECT * FROM role;
+SELECT * FROM department_id;
+SELECT * FROM role_id;
+SELECT * FROM manager_id;
