@@ -61,3 +61,26 @@ class db {
         findByManager(managerId) {
           return this.connection.promise().query(`SELECT employee.id, employee.manager_id, CONCAT(employee.first_name, ' ' , employee.last_name) AS name FROM employee LEFT JOIN roles on employee.role_id = roles.id WHERE manager_id = ?`, [managerId]);
         }
+        findByDepartment(departmentId) {
+            console.log("depId: ", departmentId)
+          return this.connection.promise().query(`SELECT CONCAT(employee.first_name, ' ' , employee.last_name) AS name, department.name AS department
+          FROM employee LEFT JOIN roles on employee.role_id = roles.id LEFT JOIN department on roles.department_id = department.id
+          WHERE department.id = ?`, [departmentId]);
+        }
+        deleteADepartment(departmentId) {
+          return this.connection.promise().query("DELETE FROM department WHERE id = ?", [departmentId]);
+        }
+        deleteARole(roleId) {
+          console.log("roleId: ", roleId)
+          return this.connection.promise().query("DELETE FROM roles WHERE id = ?", [roleId]); 
+        }
+      
+        deleteAnEmployee(employeeId) {
+          return this.connection.promise().query("DELETE FROM employee WHERE id = ?", [employeeId]);
+        }
+        findDepartmentBudget() {
+          return this.connection.promise().query("SELECT department.name AS department, department.id, SUM(salary) AS total_salary FROM employee LEFT JOIN roles on employee.role_id = roles.id LEFT JOIN department on roles.department_id = department.id GROUP BY department.id");
+        }
+      }
+      
+      module.exports = new db(connection);
