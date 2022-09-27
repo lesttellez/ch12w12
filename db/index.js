@@ -35,3 +35,29 @@ class db {
             "INSERT INTO roles (title, salary, department_id) VALUES (?, ?, ?)",
             [roleTitle, roleSalary, roleDepartmentId]
           );
+        }
+        addAnEmployee(answer) {
+          return this.connection
+            .promise()
+            .query("INSERT INTO employee SET ?", answer);
+        }
+        updateAnEmployeeRole(roleId, employeeId) {
+          return this.connection
+            .promise()
+            .query("UPDATE employee SET role_id = ? WHERE id = ?", [
+              roleId,
+              employeeId,
+            ]);
+        }
+        updateAnEmployeeManager(managerId, employeeId) {
+          return this.connection
+            .promise()
+            .query("UPDATE employee SET employee.manager_id = ? WHERE id = ?", [managerId, employeeId]);
+        }  
+        findAllManagers(employeeId) {
+            return this.connection.promise().query("SELECT * FROM employee WHERE id != ?", [employeeId]);
+        }
+      
+        findByManager(managerId) {
+          return this.connection.promise().query(`SELECT employee.id, employee.manager_id, CONCAT(employee.first_name, ' ' , employee.last_name) AS name FROM employee LEFT JOIN roles on employee.role_id = roles.id WHERE manager_id = ?`, [managerId]);
+        }
