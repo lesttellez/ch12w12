@@ -1,287 +1,418 @@
-var mysql = require("mysql");
-var inquirer = require("inquirer");
-var consoleTable = require("console.table")
+const inquirer = require("inquirer");
+const db = require("./db");
+require("console.table");
 
-// create the connection information for the sql database
-var connection = mysql.createConnection({
-  host: "localhost",
 
-  // Your port; if not 3306
-  port: 3306,
-  user: "root",
-  password: "Bamboom22!",
-  database: "employeeTracker_DB"
-});
-
-// connect to the mysql server and sql database
-connection.connect((err) => {
-  if (err) throw err;
-  // run the start function after the connection is made to prompt the user
-  start();
-});
-
-// start function for application
-
-function start() {
-    inquirer
-      .prompt({
-        name: "action",
-        type: "list",
-        message: "What would you like to do?",
-        choices:
-        [
-            "View all Departments",
-            "View all Roles",
-            "View all Employees",
-            "Add Department",
-            "Add Role",
-            "Add Employee",
-            "Update Employee Role",
-            "EXIT"
-        ]
-      })
-      .then(function(answer) {
-        // based on their answer, either call the bid or the post functions
-        if (answer.action === "View all Departments") {
-          viewDepts();
-        }
-        else if(answer.action === "View all Roles") {
-          viewRoles();
-        }
-        else if(answer.action === "View all Employees") {
-          viewEmps();
-        }
-        else if(answer.action === "Add Department") {
-          addDept();
-        }
-        else if(answer.action === "Add Role") {
-          addRole();
-        }
-        else if(answer.action === "Add Employee") {
-          addEmps();
-        }
-        else if(answer.action === "Update Employee Role") {
-          updateEmpRole();
-        }
-        else if (answer.action === "EXIT") {
-          connection.end();
-        }
-      });
-  }
-
-  // view departments in console
-function viewDepts() {
-    connection.query("SELECT employee.first_name AS FirstName, employee.last_name AS LastName, department.name AS Department FROM employee JOIN role ON employee.role_id = role.id JOIN department ON role.department_id = department.id ORDER BY employee.id;",
-    (err, answer) => {
-        if (err) throw err;
-        console.log("\n");
-        console.table(answer);
-        start();
-      });
-    }
-
-  // view roles in console
-function viewRoles() {
-    connection.query("SELECT employee.first_name AS FirstName, employee.last_name AS LastName, role.title AS Role FROM employee JOIN role ON employee.role_id = role.id;",
-    (err, answer) => {
-        if (err) throw err;
-        console.log("\n");
-        console.table(answer);
-        start();
-        });
-    }
-
-  // view employees in console
-function viewEmps() {
-    connection.query("SELECT employee.first_name AS FirstName, employee.last_name AS LastName, role.title AS Role, department.name AS Department, CONCAT(e.first_name, ' ' ,e.last_name) AS Manager FROM employee INNER JOIN role ON role.id = employee.role_id INNER JOIN department ON department.id = role.department_id LEFT JOIN employee e on employee.manager_id = e.id;",
-    (err, answer) => {
-        if (err) throw err;
-        console.log("\n");
-        console.table(answer);
-        start();
-        });
-     }
-
-  // add department in sql
-function addDept() {
-  connection.query(
-    "SELECT department.name FROM department", (err, data) => {
-      if (err) throw err;
-    inquirer
-        .prompt([
-        {
-            name: "deptName",
-            type: "input",
-            message: "What is the name of the Department?"
-        }
-        ])
-        .then((answer) => {
-        connection.query(
-            "INSERT INTO department SET ?",
-            {
-            name: answer.deptName
-            },
-            (err) => {
-            if (err) throw err;
-            console.log("\n The department was added successfully! \n");
-            start();
-            }
-        );
-    });
-})
-}
-
-// add role in sql
-function addRole() {
-  connection.query(
-    "SELECT role.title AS Title, role.salary AS Salary FROM role", (err, data) => {
-      if (err) throw err;
-    inquirer
-        .prompt([
-        {
-            name: "roleTitle",
-            type: "input",
-            message: "What is the title of the role?"
-        },
-        {
-            name: "roleSalary",
-            type: "input",
-            message: "What is the salary of the role?"
-        }
-        ])
-        .then((answers) => {
-        connection.query(
-            "INSERT INTO role SET ?",
-            {
-            title: answers.roleTitle,
-            salary: answers.roleSalary,
-            },
-            (err) => {
-            if (err) throw err;
-            console.log("\n The role was added successfully! \n");
-
-            start();
-            }
-        );
-    });
-})
-}
-
-// functions for adding employees
-currentRoles = [];
-currentManagers = [];
-
-function empRole() {
-    connection.query("SELECT * FROM role",
-    (err, answer) => {
-        if (err) throw err;
-        for (var i = 0; i < answer.length; i++) {
-            currentRoles.push(answer[i].title);
-          }
-    })
-    return currentRoles;
-}
-
-function empManager() {
-    connection.query("SELECT first_name, last_name FROM employee WHERE manager_id IS NULL",
-    (err, answer) => {
-        if (err) throw err;
-        for (var i = 0; i < answer.length; i++) {
-            currentManagers.push(`${answer[i].first_name} ${answer[i].last_name}`);
-          }
-    })
-    return currentManagers;
-}
-
-// update roles in sql
-function updateEmpRole() {
-  connection.query("SELECT * FROM employee", function(err, empData) {
-      if (err) throw err;
-  connection.query("SELECT * FROM role", function(err, roleData) {
-      if (err) throw err;
-          inquirer.prompt([
-              {
-                  name: "empName",
-                  type: "rawlist",
-                  message: "Which employee are you updating?",
-                  choices: empData.map(function(data) {
-                      return `${data.first_name} ${data.last_name}`
-                  })
-              },
-              {
-                  name: "empRole",
-                  type: "rawlist",
-                  message: "What is their new role?",
-                  choices: roleData.map(function(data) {
-                      return data.title
-                  })
-              }
-          ])
-          .then (answers => {
-              connection.query(
-                  "UPDATE employee SET ? WHERE ?",
-                  [
-                      {
-                          role_id: empData.find(function(data) {
-                              return data.title === answers.empRole
-                          })
-                      },
-                      {
-                          id: roleData.find(function(data) {
-                              return `${data.first_name} ${data.last_name}` === answers.empName
-                          })
-                      }
-                  ],
-                  function(err) {
-                      if (err) throw err;
-                      console.log("\n Employee role updated! \n");
-                      start();
-                  }
-              )
-          })
-      })
-  })
-}
-
-// add employees in sql
-function addEmps() {
+const mainMenu = async () => {
   inquirer.prompt([
-  {
-      type: "string",
-      name: "firstName",
-      message: "What is this employee's first name?",
-  },
-  {
-      type: "string",
-      name: "lastName",
-      message: "What is this employee's last name?",
-  },
-  {
-      type: "rawlist",
-      name: "role",
-      message: "What is this employee's role?",
-      choices: empRole()
-  },
-  {
-      type: "rawlist",
-      name: "manager",
-      message: "Who is this employee's manager?",
-      choices: empManager()
-  }
-
-  ]).then((answers) => {
-      const roleID = empRole().indexOf(answers.role) + 1
-      const managerID = empManager().indexOf(answers.manager) + 1
-      connection.query("INSERT INTO employee SET ?", 
     {
-        first_name: answers.firstName,
-        last_name: answers.lastName,
-        manager_id: managerID,
-        role_id: roleID
-    }, (err) => {
-      if (err) throw err;
-      console.table(answers)
-      start();
-    })
+      type: "list",
+      name: "menu",
+      message: "What would you like to do?",
+      choices: [
+        "View all departments",
+        "View all roles",
+        "View all employees",
+        "Add a department",
+        "Add a role",
+        "Add an employee",
+        "Update an employee role",
+        "Update employee manager",
+        "View employees by manager",
+        "View employees by department",
+        "Delete a department",
+        "Delete a role",
+        "Delete an employee",
+        "View total utilized budget by department",
+        "Exit"
+      ],
+    },
+  ]).then((res) => {
+    switch (res.menu) {
+        case "View all departments":
+          return viewDepartments();
+          break;
+        case "View all roles":
+          return viewRoles();
+          break;
+        case "View all employees":
+          return viewEmployees();
+          break;
+        case "Add a department":
+          return addDepartment();
+          break;
+        case "Add a role":
+          return addRole();
+          break;
+        case "Add an employee":
+          return addEmployee();
+          break;
+        case "Update an employee role":
+          return updateEmployeeRole();
+          break;
+        case "Update employee manager":
+          return updateEmployeeManager();
+          break;
+        case "View employees by manager":
+          return viewByManager();
+          break;
+        case "View employees by department":
+            return viewByDepartment();
+            break;
+        case "Delete a department":
+            return deleteDepartment();
+            break;
+        case "Delete a role":
+            return deleteRole();
+            break;
+        case "Delete an employee":
+            return deleteEmployee();
+            break;
+        case "View total utilized budget by department":
+            return budgetByDepartment();
+            break;
+        case "Exit":
+          console.log("Bye!");
+          process.exit();
+          break;
+    }
+  });
+};
+
+function viewDepartments() {
+  db.findAllDepartments().then(([rows]) => {
+    console.table(rows);
+    return mainMenu();
   });
 }
+
+function viewEmployees() {
+  db.findAllEmployees().then(([rows]) => {
+    console.table(rows);
+    return mainMenu();
+  });
+}
+
+function viewRoles() {
+  db.findAllRoles().then(([rows]) => {
+    console.table(rows);
+    return mainMenu();
+  });
+}
+
+function validateInput(value) {
+  if (value) {
+    return true;
+  } else {
+    console.log("\n Please enter a value");
+    return false;
+  }
+}
+
+const addDepartment = async () => {
+    const answer = await inquirer.prompt([
+      {
+        type: "input",
+        name: "name",
+        message: "What is the department name?",
+      },
+    ]);
+    const departmentName = answer.name;
+    db.addADepartment(departmentName).then(() => {
+      db.findAllDepartments().then(([rows]) => {
+        console.table(rows);
+        return mainMenu();
+      });
+    });
+  };
+
+const addRole = async () => {
+  const [rows] = await db.findAllDepartments();
+  console.table(rows);
+  const departmentChoices = rows.map(({ name, id }) => ({ name, value: id }));
+  // console.log(departmentChoices);
+  const answer = inquirer.prompt([
+    {
+      type: "input",
+      name: "name",
+      message: "What is the role title?",
+    },
+    {
+      type: "input",
+      name: "salary",
+      message: "What is the salary for this role?",
+    },
+    {
+      type: "list",
+      name: "department",
+      message: "Which department does this role belong to?",
+      choices: departmentChoices,
+    },
+  ]).then((res) => {
+    db.addARole(res.name, res.salary, res.department).then(() => {
+        db.findAllRoles().then(([rows]) => {
+          console.table(rows);
+          return mainMenu();
+        });
+      });
+  })
+};
+
+
+function mapEmployeeChoices({ id, name }) {
+  return { name, value: id };
+}
+
+const addEmployee = async () => {
+  const [rowsA] = await db.findAllRoles();
+  console.table(rowsA);
+  const roleChoices = rowsA.map(({ id, title }) => ({
+    name: title,
+    value: id,
+  }));
+  console.log(roleChoices);
+
+  //   immutability
+  const [rowsB] = await db.findAllEmployees();
+  const employeeChoices = rowsB.map(mapEmployeeChoices);
+  console.log(employeeChoices);
+
+  const managerChoices = [...employeeChoices, { name: "Null" }];
+  console.log(managerChoices);
+  const answer = inquirer.prompt([
+    {
+      type: "input",
+      name: "first_name",
+      message: "What is the employee's first name?",
+    },
+    {
+      type: "input",
+      name: "last_name",
+      message: "What is the employee's last name?",
+    },
+    {
+      type: "list",
+      name: "role_id",
+      message: "What is this employee's role?",
+      choices: roleChoices,
+    },
+    {
+      type: "confirm",
+      name: "managerOrNot",
+      message: "Does this employee have a manager?",
+      default: true,
+    },
+    {
+      type: "list",
+      name: "manager_id",
+      when: function (answers) {
+        return answers.managerOrNot === true;
+      },
+      message: "Who is this employee's manager?",
+      choices: managerChoices,
+    },
+  ]).then((answer) => {
+    delete answer.managerOrNot;
+    console.log(answer);
+    db.addAnEmployee(answer).then(() => {
+        db.findAllEmployees().then(([rows]) => {
+        console.table(rows);
+        return mainMenu();
+        });
+    });
+  })
+};
+
+const updateEmployeeRole = async () => {
+  const [rowsA] = await db.findAllRoles();
+  console.table(rowsA);
+  const roleChoices = rowsA.map(({ id, title }) => ({
+    name: title,
+    value: id,
+  }));
+  console.log(roleChoices);
+
+  const [rowsB] = await db.findAllEmployees();
+  const employeeChoices = rowsB.map(mapEmployeeChoices);
+  console.log(employeeChoices);
+  const answer = inquirer.prompt([
+    {
+      type: "list",
+      name: "employee",
+      message: "Which employee's role do you want to update?",
+      choices: employeeChoices,
+    },
+    {
+      type: "list",
+      name: "role",
+      message: "What is this employee's new role?",
+      choices: roleChoices,
+    },
+  ]).then((answer) => {
+    console.log(answer);
+    db.updateAnEmployeeRole(answer.role, answer.employee).then(() => {
+        db.findAllEmployees().then(([rows]) => {
+        console.table(rows);
+        return mainMenu();
+        });
+    });
+  })
+};
+
+const updateEmployeeManager = async () => {
+  const [rowsB] = await db.findAllEmployees();
+  const employeeChoices = rowsB.map(mapEmployeeChoices);
+  console.log(employeeChoices);
+  const { employee } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "employee",
+      message: "Which employee's manager do you want to update?",
+      choices: employeeChoices,
+    },
+  ])
+  const [managerRows] = await db.findAllManagers(employee);
+  console.table(managerRows);
+  const managerChoices = managerRows.map(({ id, first_name, last_name }) => ({
+    name: `${first_name} ${last_name}`,
+    value: id
+  }));
+  //   update manager choices
+  managerChoices.push({ name: "No manager selected", value: null });
+  const { manager } = inquirer.prompt([
+    {
+      type: "list",
+      name: "manager",
+      message: "Who is this employee's new manager?",
+      choices: managerChoices,
+    },
+  ]).then((answer) => {
+    db.updateAnEmployeeManager(manager, employee).then(() => {
+        db.findAllEmployees().then(([rows]) => {
+          console.table(rows);
+          return mainMenu();
+        });
+      });
+  })
+};
+
+
+const viewByManager = async () => {
+  const [allEmployees] = await db.findAllEmployees();
+  const managerChoices = allEmployees.map(mapEmployeeChoices);
+  const { manager } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "manager",
+      message: "Which manager's employees do you want to see?",
+      choices: managerChoices,
+    },
+  ]);
+  const [managersEmployees] = await db.findByManager(manager);
+  console.table(managersEmployees);
+  return mainMenu();
+};
+
+const viewByDepartment = async () => {
+    const [allDepartments] = await db.findAllDepartments();
+    console.table(allDepartments);
+    const departmentChoices = allDepartments.map(({ id, name }) => ({
+      name: name,
+      value: id,
+    }));
+    const { department } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "department",
+        message: "Which department's employees do you want to see?",
+        choices: departmentChoices,
+      },
+    ]);
+    const [departmentEmployees] = await db.findByDepartment(department);
+    console.table(departmentEmployees);
+    return mainMenu();
+  };
+
+const deleteDepartment = async () => {
+    const [allDepartments] = await db.findAllDepartments();
+    console.table(allDepartments);
+    const departmentChoices = allDepartments.map(({ id, name }) => ({
+      name: name,
+      value: id,
+    }));
+    console.table(departmentChoices);
+    const { department } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "department",
+        message: "Which department do you want to delete?",
+        choices: departmentChoices,
+      },
+    ]);
+  
+    db.deleteADepartment(department).then(() => {
+      db.findAllDepartments().then(([rows]) => {
+        console.table(rows);
+        return mainMenu();
+      });
+    });
+  };
+
+const deleteRole = async () => {
+  const [rowsA] = await db.findAllRoles();
+  console.table(rowsA);
+  const roleChoices = rowsA.map(({ id, title }) => ({
+    name: title,
+    value: id,
+  }));
+  console.log(roleChoices);
+  const response = await inquirer
+    .prompt([
+      {
+        type: "list",
+        name: "role",
+        message: "Which role do you want to delete?",
+        choices: roleChoices,
+      },
+    ])
+    .then((response) => {
+      db.deleteARole(response.role);
+        db.findAllRoles().then(([rows]) => {
+            console.table(rows);
+            return mainMenu();
+        });
+    });
+};
+
+const deleteEmployee = async () => {
+  const [rowsA] = await db.findAllEmployees();
+  console.table(rowsA);
+  const employeeChoices = rowsA.map(({ id, name }) => ({ name,
+    value: id,
+  }));
+  console.table(employeeChoices);
+  const response = await inquirer.prompt([
+    {
+      type: "list",
+      name: "employee",
+      message: "Which employee do you want to delete?",
+      choices: employeeChoices,
+    },
+  ])
+  .then((response) => {
+    db.deleteAnEmployee(response.employee);
+      db.findAllEmployees().then(([rows]) => {
+          console.table(rows);
+          return mainMenu();
+      });
+  });
+};
+
+const budgetByDepartment = async () => {
+
+  const [departmentBudget] = await db.findDepartmentBudget();
+  console.table(departmentBudget);
+  return mainMenu();
+}
+
+mainMenu();
