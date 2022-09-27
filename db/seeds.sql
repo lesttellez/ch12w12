@@ -1,24 +1,24 @@
 USE employeeTracker_DB;
 
 INSERT INTO department (name)
-VALUES ("Sales");
+VALUES (1, "Sales");
 INSERT INTO department (name)
-VALUES ("Engineering");
+VALUES (2, "Engineering");
 INSERT INTO department (name)
-VALUES ("Finance");
+VALUES (3, "Finance");
 INSERT INTO department (name)
-VALUES ("Legal");
+VALUES (4, "Legal");
 
 INSERT INTO role (title, salary, department_id)
-VALUES ("Sales Lead", 100000, 1);
+VALUES (1, "Sales Lead", 100000, 1);
 INSERT INTO role (title, salary, department_id)
-VALUES ("Lead Engineer", 150000, 2);
+VALUES (2, "Lead Engineer", 150000, 2);
 INSERT INTO role (title, salary, department_id)
-VALUES ("Software Engineer", 120000, 2);
+VALUES (3 ,"Software Engineer", 120000, 2);
 INSERT INTO role (title, salary, department_id)
-VALUES ("Accountant", 125000, 3);
+VALUES (4, "Accountant", 125000, 3);
 INSERT INTO role (title, salary, department_id)
-VALUES ("Legal Team Lead", 250000, 4);
+VALUES (5, "Legal Team Lead", 250000, 4);
 
 INSERT INTO employee (first_name, last_name, role_id, manager_id)
 VALUES ("John", "Doe", 1, 3);
