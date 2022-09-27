@@ -3,10 +3,13 @@ CREATE DATABASE employeeTracker_DB;
 
 USE employeeTracker_DB;
 
-CREATE TABLE department(
-  id INT NOT NULL AUTO_INCREMENT,
-  name VARCHAR(30),
-  PRIMARY KEY (id)
+DROP TABLE IF EXISTS department;
+DROP TABLE IF EXISTS roles;
+DROP TABLE IF EXISTS employee;
+
+CREATE TABLE department (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(30) NOT NULL
 );
 
 CREATE TABLE role(
